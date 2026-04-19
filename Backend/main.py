@@ -1,10 +1,19 @@
 from fastapi import FastAPI, HTTPException
+from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import numpy as np
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from database import SessionLocal, engine
+import models
+from schemas import UserCreate, FavoriteCreate, FavoriteResponse
+from auth import hash_password, verify_password, create_access_token, get_current_user
+from fastapi import Depends
+from typing import List
 
 app = FastAPI()
 app.add_middleware(
@@ -17,6 +26,143 @@ app.add_middleware(
 
 # Load the trained model
 model = joblib.load("../ML_Model/house_model.pkl")
+@app.on_event("startup")
+def startup():
+    models.Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/signup")
+def signup(user: UserCreate, db: Session = Depends(get_db)):
+    try:
+        existing = db.query(models.User).filter(models.User.email == user.email).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="User already exists")
+
+        hashed = hash_password(user.password)
+
+        new_user = models.User(email=user.email, password=hashed)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        # Create JWT token
+        token = create_access_token({"user_id": new_user.id, "email": new_user.email})
+
+        return {
+            "message": "User created successfully",
+            "user_id": new_user.id,
+            "token": token
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Signup error: {str(e)}")
+
+@app.post("/login")
+def login(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+
+    if not db_user or not verify_password(user.password, db_user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Create JWT token
+    token = create_access_token({"user_id": db_user.id, "email": db_user.email})
+
+    return {
+        "user_id": db_user.id,
+        "token": token
+    }
+
+
+# New Favourites Endpoints
+@app.post("/favourites", response_model=dict)
+def add_favourite(
+    data: FavoriteCreate,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user)
+):
+    """Add a property to user's favourites"""
+    try:
+        new_fav = models.Favorite(
+            user_id=current_user_id,
+            property_id=data.property_id,
+            location=data.location,
+            price=data.price,
+            total_rooms=data.total_rooms,
+            total_bedrooms=data.total_bedrooms,
+            population=data.population,
+            median_income=data.median_income,
+            ocean_proximity=data.ocean_proximity,
+            latitude=data.latitude,
+            longitude=data.longitude
+        )
+        db.add(new_fav)
+        db.commit()
+        db.refresh(new_fav)
+        
+        return {"message": "Added to favourites", "id": new_fav.id}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Already in favourites")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error adding favourite: {str(e)}")
+
+@app.get("/favourites", response_model=List[FavoriteResponse])
+def get_favourites(
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user)
+):
+    """Get all favourites for the current user"""
+    favourites = db.query(models.Favorite).filter(
+        models.Favorite.user_id == current_user_id
+    ).all()
+    
+    return favourites
+
+@app.delete("/favourites/{property_id}")
+def remove_favourite(
+    property_id: str,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user)
+):
+    """Remove a property from user's favourites"""
+    favourite = db.query(models.Favorite).filter(
+        models.Favorite.user_id == current_user_id,
+        models.Favorite.property_id == property_id
+    ).first()
+    
+    if not favourite:
+        raise HTTPException(status_code=404, detail="Favourite not found")
+    
+    db.delete(favourite)
+    db.commit()
+    
+    return {"message": "Removed from favourites"}
+
+@app.get("/favourites/check/{property_id}")
+def check_favourite(
+    property_id: str,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user)
+):
+    """Check if a property is in user's favourites"""
+    favourite = db.query(models.Favorite).filter(
+        models.Favorite.user_id == current_user_id,
+        models.Favorite.property_id == property_id
+    ).first()
+    
+    return {"is_favourite": favourite is not None}
+
 
 # Initialize geocoder
 geolocator = Nominatim(user_agent="house_price_predictor")

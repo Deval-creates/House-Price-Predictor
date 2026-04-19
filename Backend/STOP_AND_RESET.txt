@@ -1,0 +1,65 @@
+╔══════════════════════════════════════════════════════════════╗
+║                   DATABASE RESET INSTRUCTIONS                ║
+╚══════════════════════════════════════════════════════════════╝
+
+YOU ARE SEEING THIS ERROR:
+  sqlite3.OperationalError: no such column: favorites.property_id
+
+FOLLOW THESE STEPS:
+
+┌──────────────────────────────────────────────────────────────┐
+│ STEP 1: STOP THE BACKEND SERVER                              │
+└──────────────────────────────────────────────────────────────┘
+
+  In the terminal where the backend is running:
+  
+  1. Press: Ctrl + C
+  2. Wait for: "Application shutdown complete"
+
+┌──────────────────────────────────────────────────────────────┐
+│ STEP 2: RUN THE RESET SCRIPT                                 │
+└──────────────────────────────────────────────────────────────┘
+
+  In the Backend directory, run:
+  
+  python reset_database.py
+
+  You should see:
+  ✅ Deleted old database: house_app.db
+  ✅ Database created successfully!
+
+┌──────────────────────────────────────────────────────────────┐
+│ STEP 3: RESTART THE BACKEND                                  │
+└──────────────────────────────────────────────────────────────┘
+
+  python main.py
+
+  You should see:
+  INFO:     Application startup complete.
+
+┌──────────────────────────────────────────────────────────────┐
+│ DONE! Now test the favourites feature again.                 │
+└──────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════
+
+ALTERNATIVE: MANUAL METHOD
+
+If the script doesn't work:
+
+1. Stop the backend (Ctrl+C)
+2. Manually delete: Backend/house_app.db
+3. Restart: python main.py
+
+═══════════════════════════════════════════════════════════════
+
+WHY THIS IS NEEDED:
+
+The database schema was updated to support the new favourites
+system. The old database file needs to be deleted so it can be
+recreated with the new structure.
+
+Old: favorites table with just "house_data" column
+New: favorites table with property_id, location, price, etc.
+
+═══════════════════════════════════════════════════════════════

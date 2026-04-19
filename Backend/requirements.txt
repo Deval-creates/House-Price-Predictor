@@ -5,3 +5,7 @@ numpy
 scikit-learn
 geopy
 pydantic
+sqlalchemy
+passlib[bcrypt]
+python-jose[cryptography]
+sqlite-utils

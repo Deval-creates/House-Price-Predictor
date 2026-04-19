@@ -118,6 +118,11 @@
             transform: translateY(0);
         }
 
+        button a {
+            color: white;
+            text-decoration: none;
+        }
+
         .result {
             margin-top: 30px;
             padding: 20px;
@@ -178,6 +183,19 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        button a {
+            color: white;
+            text-decoration: none;
+        }
+
+        #seeHousesBtn {
+            display: none;
+        }
+
+        #seeHousesBtn.show {
+            display: block;
         }
     </style>
 </head>
@@ -256,6 +274,9 @@
             <h2>Predicted House Price</h2>
             <div class="price" id="predictedPrice">$0</div>
         </div>
+
+        <button id="seeHousesBtn" onclick="goToHouses()">See Houses</button>
+        
     </div>
 
     <script>
@@ -328,11 +349,31 @@
                 loading.classList.remove('show');
                 result.classList.add('show');
 
+                // Show the See Houses button
+                document.getElementById('seeHousesBtn').classList.add('show');
+
             } catch (error) {
                 loading.classList.remove('show');
                 alert('Error: ' + error.message + '\n\nMake sure the backend server is running on http://localhost:8000');
             }
         });
+
+        // Function to navigate to houses page with predicted price
+        function goToHouses() {
+            const predictedPriceElement = document.getElementById("predictedPrice");
+            const predictedPrice = predictedPriceElement.innerText.replace(/[$,]/g, "");
+            
+            console.log("Predicted Price (raw):", predictedPriceElement.innerText);
+            console.log("Predicted Price (cleaned):", predictedPrice);
+            
+            // Store predicted price in localStorage (for same-origin scenarios)
+            localStorage.setItem("predictedPrice", predictedPrice);
+            
+            console.log("Stored in localStorage:", localStorage.getItem("predictedPrice"));
+            
+            // ALSO pass via URL parameter (works across different origins)
+            window.open(`http://localhost:5173?price=${predictedPrice}`, '_blank');
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>localStorage Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .output {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 200px;
+            margin: 10px 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 localStorage Test Tool</h1>
+        <p>Use this page to test if localStorage is working correctly between your prediction page and houses page.</p>
+        
+        <hr>
+        
+        <h2>Test 1: Set Predicted Price</h2>
+        <input type="number" id="testPrice" value="300000" placeholder="Enter price">
+        <button onclick="setTestPrice()">Set Price in localStorage</button>
+        
+        <h2>Test 2: Read Predicted Price</h2>
+        <button onclick="readPrice()">Read Price from localStorage</button>
+        
+        <h2>Test 3: Clear localStorage</h2>
+        <button onclick="clearPrice()">Clear Predicted Price</button>
+        
+        <h2>Test 4: Open Houses Page</h2>
+        <button onclick="openHousesPage()">Open Houses Page (with price)</button>
+        
+        <div class="output" id="output">Results will appear here...</div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        function setTestPrice() {
+            clearOutput();
+            const price = document.getElementById('testPrice').value;
+            
+            log(`Setting predictedPrice to: ${price}`);
+            localStorage.setItem("predictedPrice", price);
+            
+            const stored = localStorage.getItem("predictedPrice");
+            if (stored === price) {
+                log(`✅ SUCCESS: Price stored correctly: ${stored}`, 'success');
+            } else {
+                log(`❌ ERROR: Price not stored correctly. Expected: ${price}, Got: ${stored}`, 'error');
+            }
+        }
+
+        function readPrice() {
+            clearOutput();
+            log('Reading predictedPrice from localStorage...');
+            
+            const price = localStorage.getItem("predictedPrice");
+            
+            if (price) {
+                log(`✅ Found price: ${price}`, 'success');
+                log(`Parsed as number: ${parseFloat(price)}`);
+                
+                const numPrice = parseFloat(price);
+                let category;
+                if (numPrice >= 250000) {
+                    category = "premium";
+                } else if (numPrice >= 150000) {
+                    category = "mid";
+                } else {
+                    category = "low";
+                }
+                log(`Category would be: ${category.toUpperCase()}`, 'success');
+            } else {
+                log('❌ No price found in localStorage', 'error');
+            }
+        }
+
+        function clearPrice() {
+            clearOutput();
+            log('Clearing predictedPrice from localStorage...');
+            localStorage.removeItem("predictedPrice");
+            
+            const check = localStorage.getItem("predictedPrice");
+            if (check === null) {
+                log('✅ localStorage cleared successfully', 'success');
+            } else {
+                log('❌ Failed to clear localStorage', 'error');
+            }
+        }
+
+        function openHousesPage() {
+            clearOutput();
+            const price = document.getElementById('testPrice').value;
+            
+            log(`Setting price: ${price}`);
+            localStorage.setItem("predictedPrice", price);
+            
+            log('Opening houses page in new tab...');
+            log('Check the browser console on the new tab for debug messages!', 'success');
+            
+            window.open('http://localhost:5173', '_blank');
+        }
+
+        // Auto-check on load
+        window.onload = function() {
+            log('=== localStorage Test Tool Loaded ===');
+            log('Current localStorage contents:');
+            
+            const price = localStorage.getItem("predictedPrice");
+            if (price) {
+                log(`  predictedPrice: ${price}`, 'success');
+            } else {
+                log('  (empty)');
+            }
+        };
+    </script>
+</body>
+</html>
